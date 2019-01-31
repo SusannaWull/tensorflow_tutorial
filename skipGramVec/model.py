@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-from skipGramVec.text import Text
+from text import Text
 
 
 class Model:
@@ -20,7 +20,7 @@ class Model:
         # 负采样数量
         self.sample_size = 100
         # 循环次数
-        self.epoch_size = 10
+        self.epoch_size = 1
         # 可视化单词数量
         self.viz_words = 100
 
@@ -41,6 +41,9 @@ class Model:
         # 采用负样本采样 加快收敛速度
         return tf.reduce_mean(tf.nn.sampled_softmax_loss(weights=w, biases=b, labels=labels, inputs=embed,
                                                          num_sampled=self.sample_size, num_classes=self.vocab_size))
+
+        # return tf.reduce_mean(tf.nn.nce_loss(weights=w, biases=b, inputs=embed, labels=labels,
+        #                                      num_sampled=self.sample_size, num_classes=self.vocab_size))
 
     def optimizer(self, loss):
         return tf.train.AdamOptimizer().minimize(loss)
@@ -74,19 +77,21 @@ class Model:
                 train_loss, _ = sess.run([loss, optimizer], feed_dict=feed)
                 print(datetime.datetime.now().strftime('%c'), ' epoch:', epoch, 'step:', step, ' train_loss:', train_loss)
                 step += 1
-        model_path = os.getcwd() + os.sep + "skipGramVec.model"
+        # model_path = os.getcwd() + os.sep + "skipGramVec.model"
+        model_path = "E:\\\models\\skipGramVec.model"
         saver.save(sess, model_path, global_step=step)
         sess.close()
 
     def gen(self):
         embedding, _ = self.embedding()
-        saver = tf.train.Saver()
+        # saver = tf.train.Saver()
+        saver = tf.train.import_meta_graph("E:\\models\\skipGramVec.model-15907.meta")
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            saver.restore(sess, tf.train.latest_checkpoint('.'))
+            saver.restore(sess, tf.train.latest_checkpoint('E:\\models\\'))
             embedding = sess.run(embedding)
         # 词向量
-        data = embedding[:self.viz_words, :]
+        data = embedding[100:100+self.viz_words, :]
         # 高维词向量降维
         tsne = TSNE(n_components=2, init='pca', random_state=0)
         embed_tsne = tsne.fit_transform(data)
@@ -94,5 +99,5 @@ class Model:
         plt.subplots(figsize=(10, 10))
         for idx in range(self.viz_words):
             plt.scatter(*embed_tsne[idx, :], color='steelblue')
-            plt.annotate(self.train_text.int_to_vocab[idx], (embed_tsne[idx, 0], embed_tsne[idx, 1]), alpha=0.7)
+            plt.annotate(self.train_text.int_to_vocab[idx+100], (embed_tsne[idx, 0], embed_tsne[idx, 1]), alpha=0.7)
         plt.show()

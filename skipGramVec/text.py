@@ -7,16 +7,16 @@ from glob import glob
 class Text:
 
     def __init__(self):
-        self.data_name = 'text_c10'
+        self.data_name = "E:\datasets\word2vecCorpus\\articles\\"
         self.file_list = self._get_list()
         self.text_list = [self._get_text(file_name) for file_name in self.file_list]
-        self.vocab, self.words, self.vocab_to_int, self.int_to_vocab = self._get_words()
+        self.vocab, self.words, self.vocab_to_int, self.int_to_vocab = self._get_words(freq=2, threshold=1)
         self.batch_size = 200
         self.chunk_size = len(self.words) // self.batch_size
 
     def _get_list(self):
         # 获取文本列表
-        path = os.path.join(os.getcwd(), self.data_name, '*', '*.txt')
+        path = os.path.join(self.data_name, '*.txt')
         return glob(path)
 
     def _get_text(self, file_name):
@@ -25,7 +25,7 @@ class Text:
         text = self._process_text(f.read())
         return text
 
-    def _get_words(self, freq=15, t=1e-5, threshold=0.981):
+    def _get_words(self, freq=5, t=1e-5, threshold=0.981):
         # 所有词
         all_word = ''.join(self.text_list).split()
         word_counts = Counter(all_word)
@@ -51,7 +51,8 @@ class Text:
     def _get_target(words, index, window_size=8):
         # 获取上下文单词
         window = np.random.randint(1, window_size+1)
-        start = index - window if (index - window) else 0
+        # window = window_size//2
+        start = (index - window) if (index-window)>0 else 0
         end = index + window
         targets = set(words[start:index] + words[index+1:end])
         return list(targets)
@@ -81,9 +82,11 @@ class Text:
             start += self.batch_size
             end += self.batch_size
 
+
 if __name__ == '__main__':
     T = Text()
     b = T.batch()
     for bx, by in b:
         print(bx)
         print(by)
+        break
